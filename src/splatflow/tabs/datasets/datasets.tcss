@@ -1,0 +1,38 @@
+DatasetsPane > ListView {
+  background: $background;
+}
+
+DatasetListItem {
+    width: 100%;
+    height: auto;
+    padding: 0;
+}
+
+DatasetListItem > HorizontalGroup {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+}
+
+.dataset-name {
+    width: 1fr;
+    height: auto;
+    color: $text;
+    text-style: bold;
+}
+
+.dataset-date {
+    width: auto;
+    height: auto;
+    color: $text-muted;
+    margin-left: 2;
+    margin-right: 2;
+}
+
+.dataset-n-images {
+    width: auto;
+    height: auto;
+    color: $text;
+    text-align: right;
+}
+

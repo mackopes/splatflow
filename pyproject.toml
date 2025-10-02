@@ -1,0 +1,27 @@
+[project]
+name = "splatflow"
+version = "0.1.0"
+description = "A terminal-based tool for managing 3D Gaussian Splatting workflows. Run structure-from-motion (COLMAP/GLOMAP) and gsplat training with smart caching - only reruns what changed."
+authors = [{ name = "Martin Piala", email = "pialamar@gmail.com" }]
+license = { text = "GNU AFFERO GENERAL PUBLIC LICENSE" }
+readme = "README.md"
+requires-python = ">=3.11,<4.0.0"
+dependencies = ["textual (>=6.2.1,<7.0.0)", "textual-dev (>=1.7.0,<2.0.0)", "pydantic (>=2.11.9,<3.0.0)"]
+
+[tool.poetry]
+
+[tool.poetry.scripts]
+splatflow = "splatflow.main:main"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.13.2"
+pytest-watch = "^4.2.0"
+pyright = "^1.1.406"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

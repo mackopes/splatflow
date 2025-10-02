@@ -1,0 +1,12 @@
+TabbedContent {
+    height: 100%;
+}
+
+Tabs {
+    width: 100%;
+}
+
+Tab {
+    width: 1fr;
+}
+
