@@ -6,7 +6,11 @@ authors = [{ name = "Martin Piala", email = "pialamar@gmail.com" }]
 license = { text = "GNU AFFERO GENERAL PUBLIC LICENSE" }
 readme = "README.md"
 requires-python = ">=3.11,<4.0.0"
-dependencies = ["textual (>=6.2.1,<7.0.0)", "textual-dev (>=1.7.0,<2.0.0)", "pydantic (>=2.11.9,<3.0.0)"]
+dependencies = [
+  "textual (>=6.2.1,<7.0.0)",
+  "textual-dev (>=1.7.0,<2.0.0)",
+  "pydantic (>=2.11.9,<3.0.0)",
+]
 
 [tool.poetry]
 
@@ -21,6 +25,7 @@ pyright = "^1.1.406"
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+extraPaths = ["submodules/Hierarchical-Localization"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
