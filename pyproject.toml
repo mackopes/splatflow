@@ -10,17 +10,26 @@ dependencies = [
   "textual (>=6.2.1,<7.0.0)",
   "textual-dev (>=1.7.0,<2.0.0)",
   "pydantic (>=2.11.9,<3.0.0)",
+  "typer (>=0.19.2,<0.20.0)",
 ]
 
 [tool.poetry]
 
 [tool.poetry.scripts]
 splatflow = "splatflow.main:main"
+process = "splatflow.scripts.process:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.13.2"
 pytest-watch = "^4.2.0"
 pyright = "^1.1.406"
+
+[tool.ruff]
+exclude = [
+    "submodules/**",
+    ".venv",
+    "__pycache__",
+]
 
 [tool.pyright]
 venvPath = "."
