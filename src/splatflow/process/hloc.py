@@ -1,7 +1,8 @@
 import pathlib
-from typing import Literal
 from enum import Enum
+from typing import Literal
 
+import pycolmap
 from hloc import (
     extract_features,
     match_features,
@@ -10,7 +11,7 @@ from hloc import (
     reconstruction,
 )
 
-import pycolmap
+from .colmap_utils import create_transforms_json
 
 Feature = Literal[
     "sift",
@@ -97,3 +98,5 @@ def run_hloc(
         image_options=image_options,  # type: ignore Hloc has a wrong type definition.
         verbose=False,
     )
+
+    create_transforms_json(output_dir)
