@@ -1,10 +1,16 @@
 import tomllib
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class Config(BaseModel):
-    splatflow_data_root: str
+    splatflow_data_root: Path
+
+    @field_validator("splatflow_data_root", mode="before")
+    @classmethod
+    def expand_path(cls, v):
+        """Expand user path (e.g., ~) in splatflow_data_root."""
+        return Path(v).expanduser()
 
 
 def load_config() -> Config:

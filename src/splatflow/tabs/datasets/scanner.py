@@ -1,14 +1,14 @@
-from pathlib import Path
-from typing import List
-from .dataset import Dataset
 import datetime
+import pathlib
+from typing import List, Union
 
+from .dataset import Dataset
 
 # Image file extensions to count
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
 
 
-def scan_datasets(data_root: str) -> List[Dataset]:
+def scan_datasets(data_root: Union[str, pathlib.Path]) -> List[Dataset]:
     """Scan the datasets directory and return list of datasets with metadata.
 
     Args:
@@ -17,7 +17,7 @@ def scan_datasets(data_root: str) -> List[Dataset]:
     Returns:
         List of Dataset objects with validation and image counts
     """
-    datasets_dir = Path(data_root) / "datasets"
+    datasets_dir = pathlib.Path(data_root) / "datasets"
 
     if not datasets_dir.exists():
         return []
