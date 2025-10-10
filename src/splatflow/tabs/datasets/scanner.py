@@ -1,8 +1,9 @@
 import datetime
 import pathlib
 from typing import List, Union
+import json
 
-from .dataset import Dataset
+from .dataset import Dataset, ProcessedDataset, SplatflowData
 
 # Image file extensions to count
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
@@ -45,13 +46,43 @@ def scan_datasets(data_root: Union[str, pathlib.Path]) -> List[Dataset]:
         # Get creation time from directory
         created_at = datetime.datetime.fromtimestamp(dataset_dir.stat().st_ctime)
 
+        processed_datasets = _collect_processed_datasets(dataset_dir)
+
         datasets.append(
             Dataset(
                 name=dataset_dir.name,
                 created_at=created_at,
                 n_images=n_images,
                 valid=valid,
+                processed_datasets=processed_datasets,
             )
         )
 
     return datasets
+
+
+def _collect_processed_datasets(dataset_dir: pathlib.Path) -> List[ProcessedDataset]:
+    """Collect processed dataset variants from splatflow_data.json.
+
+    Args:
+        dataset_dir: Path to the dataset directory
+
+    Returns:
+        List of ProcessedDataset objects representing different processing configurations
+    """
+    data_file_path = dataset_dir / "splatflow_data.json"
+
+    if not data_file_path.is_file():
+        return []
+
+    try:
+        with open(data_file_path, "r") as f:
+            data = json.load(f)
+
+        splatflow_data = SplatflowData.from_dict(data)
+        return splatflow_data.datasets
+
+    except (json.JSONDecodeError, KeyError, ValueError) as e:
+        # Log error and return empty list if JSON is malformed
+        print(f"Warning: Could not parse {data_file_path}: {e}")
+        return []
