@@ -1,0 +1,14 @@
+QueuePane Horizontal {
+  width: 100%;
+}
+
+#queue-list-container {
+  border: round $panel;
+  padding: 0 1;
+}
+
+#queue-output-container {
+  border: round $panel;
+  padding: 0 1;
+}
+

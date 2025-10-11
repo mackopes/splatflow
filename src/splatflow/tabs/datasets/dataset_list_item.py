@@ -15,22 +15,14 @@ class DatasetListItem(ListItem):
         self.dataset = dataset
 
     def compose(self) -> ComposeResult:
-        tree: Tree[str] = Tree("Dune")
-        tree.root.expand()
-        characters = tree.root.add("Characters", expand=True)
-        characters.add_leaf("Paul")
-        characters.add_leaf("Jessica")
-        characters.add_leaf("Chani")
-        yield tree
-
-        # with HorizontalGroup():
-        #     name_prefix = "" if self.dataset.processed_datasets else "* "
-        #     yield Label(name_prefix + self.dataset.name, classes="dataset-name")
-        #     yield Label(
-        #         self.dataset.created_at.strftime("%Y-%m-%d"),
-        #         classes="dataset-date",
-        #     )
-        #     yield Label(
-        #         f"{self.dataset.n_images} images",
-        #         classes="dataset-n-images",
-        #     )
+        with HorizontalGroup():
+            name_prefix = "" if self.dataset.processed_datasets else "* "
+            yield Label(name_prefix + self.dataset.name, classes="dataset-name")
+            yield Label(
+                self.dataset.created_at.strftime("%Y-%m-%d"),
+                classes="dataset-date",
+            )
+            yield Label(
+                f"{self.dataset.n_images} images",
+                classes="dataset-n-images",
+            )

@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, List
+from pathlib import Path
 
 from textual.app import ComposeResult
 from textual.events import Resize
@@ -17,8 +18,8 @@ if TYPE_CHECKING:
 class DatasetsPane(FlowTab):
     datasets: List[Dataset] = []
     BINDINGS = [
-        ("i", "action_import_dataset", "Import Dataset"),
-        ("p", "action_process_dataset", "Process dataset"),
+        ("i", "import_dataset", "Import Dataset"),
+        ("p", "process_dataset", "Process dataset"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -92,4 +93,34 @@ class DatasetsPane(FlowTab):
         pass
 
     def action_process_dataset(self):
-        pass
+        """Process the currently selected dataset."""
+        self.log("=== ACTION PROCESS DATASET CALLED ===")
+        tree = self.query_one(Tree)
+        if not tree.cursor_node:
+            print("not cursor node")
+            return
+
+        # Get the dataset from the cursor node's data
+        dataset = tree.cursor_node.data
+        if not dataset or not isinstance(dataset, Dataset):
+            return
+
+        # Get the dataset path
+        app: MyApp = self.app  # type: ignore
+        dataset_path = Path(app.config.splatflow_data_root) / "datasets" / dataset.name
+
+        # Add to queue
+        app.add_to_queue(
+            name=f"Process: {dataset.name}",
+            command=[
+                "poetry",
+                "run",
+                "python",
+                "-m",
+                "splatflow.process.test_process",
+                str(dataset_path),
+            ],
+        )
+
+        # Switch to queue tab
+        app.switch_to_queue_tab()

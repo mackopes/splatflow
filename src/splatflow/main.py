@@ -1,13 +1,17 @@
 from typing import List, Tuple, Type
+import asyncio
+import os
 
 from textual.app import App, ComposeResult
+from textual.reactive import reactive
 from textual.widgets import Footer, TabbedContent, TabPane
 
 from splatflow.config import Config, load_config
 from splatflow.initialise import initialise
+from splatflow.worker.queue_manager import QueueItem
 from splatflow.tabs.datasets.datasets import DatasetsPane
 from splatflow.tabs.models import ModelsPane
-from splatflow.tabs.queue import QueuePane
+from splatflow.tabs.queue.queue import QueuePane
 from splatflow.tabs.flow_tab import FlowTab
 
 TABS: List[Tuple[str, Type[FlowTab]]] = [
@@ -18,15 +22,20 @@ TABS: List[Tuple[str, Type[FlowTab]]] = [
 
 
 class MyApp(App):
-    CSS_PATH = ["app.tcss", "tabs/datasets/datasets.tcss"]
+    CSS_PATH = ["app.tcss", "tabs/datasets/datasets.tcss", "tabs/queue/queue.tcss"]
 
     BINDINGS = [
         ("t", "next_tab", "Next tab"),
     ]
 
+    # Queue management
+    queue: reactive[List[QueueItem]] = reactive(list, init=False)
+    _processing: bool = False
+
     def __init__(self, config: Config):
         super().__init__()
         self.config = config
+        self.queue = []
 
     def compose(self) -> ComposeResult:
         with TabbedContent():
@@ -34,6 +43,10 @@ class MyApp(App):
                 with TabPane(tab_name, id=tab_name.lower()):
                     yield tab_pane()
         yield Footer()
+
+    def on_mount(self) -> None:
+        """Start the queue processing worker when app mounts."""
+        self.run_worker(self.process_queue_worker, exclusive=True)
 
     def action_next_tab(self) -> None:
         """Switch to the next tab and focus its content."""
@@ -51,6 +64,89 @@ class MyApp(App):
             # The pane's first child is the FlowTab widget
             flow_tab = active_pane.query_one(FlowTab)
             flow_tab.focus_content()
+
+    # TODO: refactor queue items to a standalone file
+    def add_to_queue(
+        self,
+        name: str,
+        command: List[str],
+    ) -> QueueItem:
+        """Add a new item to the processing queue."""
+        print("Adding item to queue")
+        item = QueueItem.create(name=name, command=command)
+        self.queue.append(item)
+        self.mutate_reactive(MyApp.queue)
+        return item
+
+    async def process_queue_worker(self) -> None:
+        """Background worker that processes queue items."""
+        while True:
+            # Find next pending item
+            pending_item = next(
+                (item for item in self.queue if item.status == "pending"), None
+            )
+
+            if pending_item and not self._processing:
+                print("found pending item!")
+                self._processing = True
+                await self.process_queue_item(pending_item)
+                self._processing = False
+            else:
+                # No pending items, sleep a bit
+                await asyncio.sleep(1)
+
+    async def process_queue_item(self, item: QueueItem) -> None:
+        """Process a single queue item using subprocess."""
+        item.mark_running()
+        self.mutate_reactive(MyApp.queue)
+
+        try:
+            # Create subprocess with pipes for stdout and stderr
+            process = await asyncio.create_subprocess_exec(
+                *item.command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            )
+
+            # Helper to read stream line-by-line and add to output
+            async def read_stream(stream, prefix=""):
+                while True:
+                    line = await stream.readline()
+                    if not line:
+                        break
+                    decoded_line = line.decode().rstrip()
+                    if decoded_line:  # Skip empty lines
+                        output_line = (
+                            f"{prefix}{decoded_line}" if prefix else decoded_line
+                        )
+
+                        item.add_output(output_line)
+                        self.mutate_reactive(MyApp.queue)
+
+            # Read stdout and stderr concurrently
+            await asyncio.gather(
+                read_stream(process.stdout),
+                read_stream(process.stderr, "[STDERR] "),
+            )
+
+            # Wait for process to complete
+            returncode = await process.wait()
+
+            if returncode == 0:
+                item.mark_completed()
+            else:
+                item.mark_failed(f"Process exited with code {returncode}")
+
+        except Exception as e:
+            item.mark_failed(f"Error: {str(e)}")
+
+        self.mutate_reactive(MyApp.queue)
+
+    def switch_to_queue_tab(self) -> None:
+        """Switch to the queue tab."""
+        tabbed_content = self.query_one(TabbedContent)
+        tabbed_content.active = "queue"
 
 
 def main():
