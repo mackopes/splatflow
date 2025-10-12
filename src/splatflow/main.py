@@ -21,7 +21,7 @@ TABS: List[Tuple[str, Type[FlowTab]]] = [
 ]
 
 
-class MyApp(App):
+class SplatflowApp(App):
     CSS_PATH = ["app.tcss", "tabs/datasets/datasets.tcss", "tabs/queue/queue.tcss"]
 
     BINDINGS = [
@@ -75,7 +75,7 @@ class MyApp(App):
         print("Adding item to queue")
         item = QueueItem.create(name=name, command=command)
         self.queue.append(item)
-        self.mutate_reactive(MyApp.queue)
+        self.mutate_reactive(SplatflowApp.queue)
         return item
 
     async def process_queue_worker(self) -> None:
@@ -98,7 +98,7 @@ class MyApp(App):
     async def process_queue_item(self, item: QueueItem) -> None:
         """Process a single queue item using subprocess."""
         item.mark_running()
-        self.mutate_reactive(MyApp.queue)
+        self.mutate_reactive(SplatflowApp.queue)
 
         try:
             # Create subprocess with pipes for stdout and stderr
@@ -125,7 +125,7 @@ class MyApp(App):
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
                             item.add_output(output_line)
-                            self.mutate_reactive(MyApp.queue)
+                            self.mutate_reactive(SplatflowApp.queue)
                         break
 
                     try:
@@ -139,13 +139,13 @@ class MyApp(App):
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
                             item.add_output(output_line)
-                            self.mutate_reactive(MyApp.queue)
+                            self.mutate_reactive(SplatflowApp.queue)
                         buffer = ""
                     elif char == "\r":
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
                             item.add_output(output_line)
-                            self.mutate_reactive(MyApp.queue)
+                            self.mutate_reactive(SplatflowApp.queue)
                         buffer = ""
                     else:
                         buffer += char
@@ -168,7 +168,7 @@ class MyApp(App):
         except Exception as e:
             item.mark_failed(f"Error: {str(e)}")
 
-        self.mutate_reactive(MyApp.queue)
+        self.mutate_reactive(SplatflowApp.queue)
 
     def switch_to_queue_tab(self) -> None:
         """Switch to the queue tab."""
@@ -179,7 +179,7 @@ class MyApp(App):
 def main():
     config = load_config()
     initialise(config)
-    app = MyApp(config)
+    app = SplatflowApp(config)
     app.theme = "catppuccin-mocha"
     app.run()
 
