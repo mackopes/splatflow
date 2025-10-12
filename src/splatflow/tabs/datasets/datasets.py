@@ -10,6 +10,8 @@ from .dataset import Dataset
 from .scanner import scan_datasets
 from splatflow.tabs.flow_tab import FlowTab
 
+from splatflow.scripts.process import HlocCommandSettings
+from .process_dialog import ProcessDialog
 
 if TYPE_CHECKING:
     from splatflow.main import MyApp
@@ -105,21 +107,33 @@ class DatasetsPane(FlowTab):
         if not dataset or not isinstance(dataset, Dataset):
             return
 
+        # Run the dialog in a worker (required for push_screen_wait)
+        self.run_worker(self._process_dataset_worker(dataset))
+
+    async def _process_dataset_worker(self, dataset: Dataset):
+        """Worker method to handle async dialog interaction."""
+
+        # Show dialog to get processed dataset name
+        processed_name = await self.app.push_screen_wait(ProcessDialog(dataset.name))
+
+        if processed_name is None:  # User cancelled
+            return
+
         # Get the dataset path
         app: MyApp = self.app  # type: ignore
         dataset_path = Path(app.config.splatflow_data_root) / "datasets" / dataset.name
 
+        builder = HlocCommandSettings(
+            images_dir=dataset_path / "input",
+            output_dir=dataset_path / processed_name,
+            # Using defaults for now, can expose these to UI later
+        )
+
         # Add to queue
         app.add_to_queue(
-            name=f"Process: {dataset.name}",
-            command=[
-                "poetry",
-                "run",
-                "python",
-                "-m",
-                "splatflow.process.test_process",
-                str(dataset_path),
-            ],
+            name=f"Process: {dataset.name} → {processed_name}",
+            command=builder.build(),
+            # command=["echo", "processing data"],
         )
 
         # Switch to queue tab

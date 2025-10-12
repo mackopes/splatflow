@@ -106,23 +106,49 @@ class MyApp(App):
                 *item.command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                env={
+                    **os.environ,
+                    "PYTHONUNBUFFERED": "1",
+                    "TQDM_MININTERVAL": "10",
+                    # "TQDM_DISABLE": "0",
+                },
             )
 
-            # Helper to read stream line-by-line and add to output
+            # Helper to read stream byte-by-byte for real-time output
             async def read_stream(stream, prefix=""):
+                buffer = ""
                 while True:
-                    line = await stream.readline()
-                    if not line:
+                    # Read one byte at a time for immediate output
+                    byte = await stream.read(1)
+                    if not byte:
+                        # Flush any remaining buffer content
+                        if buffer.strip():
+                            output_line = f"{prefix}{buffer}" if prefix else buffer
+                            item.add_output(output_line)
+                            self.mutate_reactive(MyApp.queue)
                         break
-                    decoded_line = line.decode().rstrip()
-                    if decoded_line:  # Skip empty lines
-                        output_line = (
-                            f"{prefix}{decoded_line}" if prefix else decoded_line
-                        )
 
-                        item.add_output(output_line)
-                        self.mutate_reactive(MyApp.queue)
+                    try:
+                        char = byte.decode()
+                    except UnicodeDecodeError:
+                        # Skip invalid bytes
+                        continue
+
+                    # Emit on newline or carriage return (for tqdm)
+                    if char == "\n":
+                        if buffer.strip():
+                            output_line = f"{prefix}{buffer}" if prefix else buffer
+                            item.add_output(output_line)
+                            self.mutate_reactive(MyApp.queue)
+                        buffer = ""
+                    elif char == "\r":
+                        if buffer.strip():
+                            output_line = f"{prefix}{buffer}" if prefix else buffer
+                            item.add_output(output_line)
+                            self.mutate_reactive(MyApp.queue)
+                        buffer = ""
+                    else:
+                        buffer += char
 
             # Read stdout and stderr concurrently
             await asyncio.gather(
@@ -136,6 +162,7 @@ class MyApp(App):
             if returncode == 0:
                 item.mark_completed()
             else:
+                print(f"Process exited with code {returncode}")
                 item.mark_failed(f"Process exited with code {returncode}")
 
         except Exception as e:

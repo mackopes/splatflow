@@ -99,4 +99,8 @@ def run_hloc(
         verbose=False,
     )
 
+    print("creating transforms")
+
     create_transforms_json(output_dir)
+
+    print("done")
