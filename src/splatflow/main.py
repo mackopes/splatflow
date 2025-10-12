@@ -106,11 +106,12 @@ class SplatflowApp(App):
                 *item.command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                # TODO: Specify the window width (ncols) for TQDM
                 env={
                     **os.environ,
-                    "PYTHONUNBUFFERED": "1",
-                    "TQDM_MININTERVAL": "10",
-                    # "TQDM_DISABLE": "0",
+                    "PYTHONUNBUFFERED": "2",
+                    "TQDM_MININTERVAL": "1",
+                    "TQDM_ASCII": "True",
                 },
             )
 
@@ -119,6 +120,7 @@ class SplatflowApp(App):
                 buffer = ""
                 while True:
                     # Read one byte at a time for immediate output
+                    # TODO: Maybe we can increase this?
                     byte = await stream.read(1)
                     if not byte:
                         # Flush any remaining buffer content
@@ -144,7 +146,8 @@ class SplatflowApp(App):
                     elif char == "\r":
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
-                            item.add_output(output_line)
+                            # for \r we want to overwrite the last line
+                            item.output[-1] = output_line
                             self.mutate_reactive(SplatflowApp.queue)
                         buffer = ""
                     else:

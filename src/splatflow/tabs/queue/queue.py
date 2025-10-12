@@ -15,7 +15,7 @@ class QueuePane(FlowTab):
     """Queue pane showing processing tasks and their output."""
 
     selected_item_id: var[str | None] = var(None)
-    _last_output_length: int = 0
+    # _last_output_length: int = 0
 
     def compose(self) -> ComposeResult:
         with Horizontal():
@@ -98,7 +98,7 @@ class QueuePane(FlowTab):
         """Handle queue item selection."""
         if event.item and hasattr(event.item, "item_id"):
             self.selected_item_id = event.item.item_id  # type: ignore
-            self._last_output_length = 0  # Reset when selecting a new item
+            # self._last_output_length = 0  # Reset when selecting a new item
             self.update_output()
 
     def update_output(self) -> None:
@@ -116,15 +116,28 @@ class QueuePane(FlowTab):
 
         log = self.query_one("#queue-output", RichLog)
 
-        # If this is a different item or output was cleared, rebuild from scratch
         current_length = len(queue_item.output)
-        if self._last_output_length == 0 or current_length < self._last_output_length:
+        log_length = len(log.lines)
+
+        if current_length < log_length:
             log.clear()
             for line in queue_item.output:
                 log.write(line)
-            self._last_output_length = current_length
-        elif current_length > self._last_output_length:
-            # Only append new lines
-            for line in queue_item.output[self._last_output_length :]:
+        else:
+            for i in range(log_length):
+                log.lines[i] = queue_item.output[i]
+            for line in queue_item.output[log_length:]:
                 log.write(line)
-            self._last_output_length = current_length
+
+        # If this is a different item or output was cleared, rebuild from scratch
+        # current_length = len(queue_item.output)
+        # if self._last_output_length == 0 or current_length < self._last_output_length:
+        #     log.clear()
+        #     for line in queue_item.output:
+        #         log.write(line)
+        #     self._last_output_length = current_length
+        # elif current_length > self._last_output_length:
+        #     # Only append new lines
+        #     for line in queue_item.output[self._last_output_length :]:
+        #         log.write(line)
+        #     self._last_output_length = current_length
