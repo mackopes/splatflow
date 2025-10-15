@@ -414,7 +414,13 @@ class TransformsDataset(torch.utils.data.Dataset):
         # )
 
         # c2w = hacky_flips * c2w
-        c2w = torch.from_numpy(frame.transform_matrix @ np.diag([1, 1, 1, 1])).float()
+        c2w = torch.from_numpy(frame.transform_matrix @ np.diag([1, 1, -1, 1])).float()
+
+        # this works for all other datasets.
+        # TODO: make the processing transform inver the second column so it's compatible
+        # TODO: Orient the model correctly
+        #
+        # c2w = torch.from_numpy(frame.transform_matrix @ np.diag([1, -1, -1, 1])).float()
         # c2w[1, 0] *= -1
         # c2w[1, 3] *= -1
         # c2w[2, 1] *= -1
