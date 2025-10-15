@@ -11,7 +11,7 @@ from hloc import (
     reconstruction,
 )
 
-from .colmap_utils import create_transforms_json
+from splatflow.colmap_utils import create_transforms_json
 
 Feature = Literal[
     "sift",
@@ -49,15 +49,16 @@ class CameraModel(Enum):
 
 
 def run_hloc(
-    images_dir: pathlib.Path,
+    dataset_dir: pathlib.Path,
     output_dir: pathlib.Path,
     matching_method: MatchingMethod = "vocab_tree",
     feature_type: Feature = "superpoint_max",
-    matcher_type: Matcher = "superglue",
+    matcher_type: Matcher = "superpoint+lightglue",
     num_matched: int = 200,
-    use_single_camera_mode: bool = False,
+    use_single_camera_mode: bool = True,
     camera_model: CameraModel = CameraModel.OPENCV,
 ):
+    images_dir = dataset_dir / "input"
     sfm_pairs = output_dir / "pairs-netvlad.txt"
     sfm_dir = output_dir / "sparse" / "0"
     features = output_dir / "features.h5"
@@ -99,7 +100,27 @@ def run_hloc(
         verbose=False,
     )
 
-    print("creating transforms")
+    # Load reconstruction and print stats
+    reconstructions = pycolmap.Reconstruction(str(sfm_dir))
+    num_images_input = len(references)
+    num_images_registered = reconstructions.num_images()
+    num_points3D = reconstructions.num_points3D()
+    num_cameras = reconstructions.num_cameras()
+
+    print("\n=== Reconstruction Stats ===")
+    print(f"Input images: {num_images_input}")
+    print(f"Registered images: {num_images_registered}")
+    print(f"3D points: {num_points3D}")
+    print(f"Cameras: {num_cameras}")
+
+    if num_images_registered < num_images_input:
+        print(
+            f"WARNING: Only {num_images_registered}/{num_images_input} images were registered!"
+        )
+        unregistered = num_images_input - num_images_registered
+        print(f"         {unregistered} images failed to register.")
+
+    print("\ncreating transforms")
 
     create_transforms_json(output_dir)
 

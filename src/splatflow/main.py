@@ -1,4 +1,4 @@
-from typing import List, Tuple, Type
+from typing import Callable, List, Tuple, Type
 import asyncio
 import os
 
@@ -70,10 +70,19 @@ class SplatflowApp(App):
         self,
         name: str,
         command: List[str],
+        before_exec_callback: Callable[[], None] | None = None,
+        on_success_callback: Callable[[], None] | None = None,
+        on_error_callback: Callable[[], None] | None = None,
     ) -> QueueItem:
         """Add a new item to the processing queue."""
         print("Adding item to queue")
-        item = QueueItem.create(name=name, command=command)
+        item = QueueItem.create(
+            name=name,
+            command=command,
+            before_exec_callback=before_exec_callback,
+            on_success_callback=on_success_callback,
+            on_error_callback=on_error_callback,
+        )
         self.queue.append(item)
         self.mutate_reactive(SplatflowApp.queue)
         return item
@@ -99,6 +108,10 @@ class SplatflowApp(App):
         """Process a single queue item using subprocess."""
         item.mark_running()
         self.mutate_reactive(SplatflowApp.queue)
+
+        # Call before execution callback
+        if item.before_exec_callback:
+            item.before_exec_callback()
 
         try:
             # Create subprocess with pipes for stdout and stderr
@@ -164,12 +177,21 @@ class SplatflowApp(App):
 
             if returncode == 0:
                 item.mark_completed()
+                # Call success callback
+                if item.on_success_callback:
+                    item.on_success_callback()
             else:
                 print(f"Process exited with code {returncode}")
                 item.mark_failed(f"Process exited with code {returncode}")
+                # Call error callback
+                if item.on_error_callback:
+                    item.on_error_callback()
 
         except Exception as e:
             item.mark_failed(f"Error: {str(e)}")
+            # Call error callback
+            if item.on_error_callback:
+                item.on_error_callback()
 
         self.mutate_reactive(SplatflowApp.queue)
 

@@ -3,7 +3,7 @@
 import dataclasses
 import datetime
 import uuid
-from typing import Literal
+from typing import Callable, Literal
 
 
 @dataclasses.dataclass
@@ -22,17 +22,28 @@ class QueueItem:
     started_at: datetime.datetime | None = None
     completed_at: datetime.datetime | None = None
 
+    # Lifecycle callbacks
+    before_exec_callback: Callable[[], None] | None = None
+    on_success_callback: Callable[[], None] | None = None
+    on_error_callback: Callable[[], None] | None = None
+
     @classmethod
     def create(
         cls,
         name: str,
         command: list[str],
+        before_exec_callback: Callable[[], None] | None = None,
+        on_success_callback: Callable[[], None] | None = None,
+        on_error_callback: Callable[[], None] | None = None,
     ) -> "QueueItem":
         """Create a new queue item with a generated ID."""
         return cls(
             id=str(uuid.uuid4()),
             name=name,
             command=command,
+            before_exec_callback=before_exec_callback,
+            on_success_callback=on_success_callback,
+            on_error_callback=on_error_callback,
         )
 
     def add_output(self, line: str) -> None:

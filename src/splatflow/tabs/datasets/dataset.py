@@ -3,15 +3,41 @@ import datetime
 import json
 import os
 import pathlib
+import enum
 from typing import Any, Dict, List, Optional
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 
+class ProcessedDatasetState(enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    FAILED = "failed"
+    READY = "ready"
+
+
 @dataclasses.dataclass
 class ProcessedDataset:
     name: str
+    state: ProcessedDatasetState
     settings: Dict[str, Any]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "state": self.state.value,  # Convert enum to string
+            "settings": self.settings,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ProcessedDataset":
+        """Create from dictionary loaded from JSON."""
+        return cls(
+            name=data["name"],
+            state=ProcessedDatasetState(data["state"]),  # Convert string to enum
+            settings=data["settings"],
+        )
 
 
 @dataclasses.dataclass
@@ -23,16 +49,14 @@ class SplatflowData:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
-            "datasets": [
-                {"name": d.name, "settings": d.settings} for d in self.datasets
-            ]
+            "datasets": [d.to_dict() for d in self.datasets]
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SplatflowData":
         """Create from dictionary loaded from JSON."""
         datasets = [
-            ProcessedDataset(name=d["name"], settings=d["settings"])
+            ProcessedDataset.from_dict(d)
             for d in data.get("datasets", [])
         ]
         return cls(datasets=datasets)

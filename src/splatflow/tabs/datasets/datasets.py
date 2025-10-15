@@ -6,7 +6,7 @@ from textual.events import Resize
 from textual.widgets import Tree
 from rich.text import Text
 
-from .dataset import Dataset
+from .dataset import Dataset, ProcessedDataset, ProcessedDatasetState
 from .scanner import scan_datasets
 from splatflow.tabs.flow_tab import FlowTab
 
@@ -14,7 +14,7 @@ from splatflow.scripts.process import HlocCommandSettings
 from .process_dialog import ProcessDialog
 
 if TYPE_CHECKING:
-    from splatflow.main import MyApp
+    from splatflow.main import SplatflowApp
 
 
 class DatasetsPane(FlowTab):
@@ -35,7 +35,7 @@ class DatasetsPane(FlowTab):
 
     def on_mount(self) -> None:
         """Load and display datasets when the pane is mounted."""
-        app: MyApp = self.app  # type: ignore
+        app: SplatflowApp = self.app  # type: ignore
         config = app.config
         self.datasets = scan_datasets(config.splatflow_data_root)
 
@@ -89,7 +89,11 @@ class DatasetsPane(FlowTab):
                 # Has processed datasets - add as node with children
                 dataset_node = tree.root.add(dataset_label, data=dataset)
                 for processed in dataset.processed_datasets:
-                    dataset_node.add_leaf(processed.name)
+                    # Append state if not READY
+                    display_name = processed.name
+                    if processed.state != ProcessedDatasetState.READY:
+                        display_name = f"{processed.name} ({processed.state.value})"
+                    dataset_node.add_leaf(display_name)
 
     def action_import_dataset(self):
         pass
@@ -120,20 +124,63 @@ class DatasetsPane(FlowTab):
             return
 
         # Get the dataset path
-        app: MyApp = self.app  # type: ignore
+        app: SplatflowApp = self.app  # type: ignore
         dataset_path = Path(app.config.splatflow_data_root) / "datasets" / dataset.name
 
         builder = HlocCommandSettings(
-            images_dir=dataset_path / "input",
+            dataset_dir=dataset_path,
             output_dir=dataset_path / processed_name,
             # Using defaults for now, can expose these to UI later
         )
 
-        # Add to queue
+        # Create ProcessedDataset with PENDING state and save to JSON
+        processed_dataset = ProcessedDataset(
+            name=processed_name,
+            state=ProcessedDatasetState.PENDING,
+            settings=builder.to_dict(),
+        )
+        dataset.add_processed_dataset(processed_dataset)
+
+        # TODO: Extract and refactor these callbacks
+        # Define callbacks to update the state
+        def before_exec_callback():
+            """Update state to PROCESSING before execution."""
+            splatflow_data = dataset._load_splatflow_data()
+            if splatflow_data:
+                for pd in splatflow_data.datasets:
+                    if pd.name == processed_name:
+                        pd.state = ProcessedDatasetState.PROCESSING
+                        break
+                splatflow_data.save(dataset._splatflow_data_path)
+
+        def on_success_callback():
+            """Update state to READY on success."""
+            splatflow_data = dataset._load_splatflow_data()
+            if splatflow_data:
+                for pd in splatflow_data.datasets:
+                    if pd.name == processed_name:
+                        pd.state = ProcessedDatasetState.READY
+                        break
+                splatflow_data.save(dataset._splatflow_data_path)
+
+        def on_error_callback():
+            """Update state to FAILED on error."""
+            splatflow_data = dataset._load_splatflow_data()
+            if splatflow_data:
+                for pd in splatflow_data.datasets:
+                    if pd.name == processed_name:
+                        pd.state = ProcessedDatasetState.FAILED
+                        break
+                splatflow_data.save(dataset._splatflow_data_path)
+
+        # TODO: Check if the name is unique
+        # Add to queue with callbacks
         app.add_to_queue(
             name=f"Process: {dataset.name} → {processed_name}",
             command=builder.build(),
-            # command=["echo", "processing data"],
+            before_exec_callback=before_exec_callback,
+            on_success_callback=on_success_callback,
+            on_error_callback=on_error_callback,
         )
 
         # Switch to queue tab
