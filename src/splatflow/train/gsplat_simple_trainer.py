@@ -344,21 +344,10 @@ class Runner:
         # self.writer = SummaryWriter(log_dir=f"{cfg.result_dir}/tb")
 
         # Load data: Training data should contain initial points and colors.
-        # self.parser = Parser(
-        #     data_dir=cfg.data_dir,
-        #     factor=cfg.data_factor,
-        #     normalize=cfg.normalize_world_space,
-        #     test_every=cfg.test_every,
-        # )
-        # TODO: add this to some config or whatever
         path_to_transforms = pathlib.Path(cfg.data_dir) / "transforms.json"
-        # self.trainset = Dataset(
-        #     self.parser,
-        #     split="train",
-        #     patch_size=cfg.patch_size,
-        #     load_depths=cfg.depth_loss,
-        # )
-        self.trainset = TransformsDataset(path_to_transforms, patch_size=cfg.patch_size)
+        self.trainset = TransformsDataset(
+            path_to_transforms, patch_size=cfg.patch_size, factor=cfg.data_factor
+        )
         print("train length", len(self.trainset))
 
         # Compute scene scale from camera positions
@@ -626,6 +615,7 @@ class Runner:
             num_workers=16,
             persistent_workers=True,
             pin_memory=True,
+            prefetch_factor=4,
         )
         trainloader_iter = iter(trainloader)
 
