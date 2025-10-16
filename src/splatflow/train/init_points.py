@@ -1,10 +1,12 @@
 """Load initial points and colors from COLMAP sparse reconstruction for Gaussian Splatting initialization."""
 
 import pathlib
+
 import numpy as np
 from plyfile import PlyData
 
 from splatflow.colmap_utils import ColmapTransforms
+from splatflow.train.math_utils import rot_x
 
 
 def load_points_from_transforms(
@@ -37,6 +39,8 @@ def load_points_from_transforms(
     points = np.stack([vertex["x"], vertex["y"], vertex["z"]], axis=1).astype(
         np.float32
     )
+
+    points = (rot_x(-np.pi / 2) @ points.T).T
 
     # Extract RGB colors
     points_rgb = np.stack(

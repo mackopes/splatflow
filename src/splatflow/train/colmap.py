@@ -1,5 +1,8 @@
 import json
 import os
+
+# from pycolmap import SceneManager
+import pathlib
 from typing import Any, Dict, List, Optional
 
 import cv2
@@ -7,11 +10,11 @@ import imageio.v2 as imageio
 import numpy as np
 import torch
 from PIL import Image
-
-# from pycolmap import SceneManager
-import pathlib
 from tqdm import tqdm
 from typing_extensions import assert_never
+
+from splatflow.colmap_utils import ColmapTransforms
+from splatflow.train.math_utils import rot_x
 
 from .normalize import (
     align_principal_axes,
@@ -19,8 +22,6 @@ from .normalize import (
     transform_cameras,
     transform_points,
 )
-
-from splatflow.colmap_utils import ColmapTransforms
 
 
 def _get_rel_paths(path_dir: str) -> List[str]:
@@ -413,11 +414,13 @@ class TransformsDataset(torch.utils.data.Dataset):
         #     [[1, -1, -1, 1], [1, -1, -1, 1], [-1, 1, 1, -1], [1, 1, 1, 1]]
         # )
 
+        align_matrix = np.eye(4)
+        align_matrix[:3, :3] = rot_x(-np.pi / 2)
         # c2w = hacky_flips * c2w
-        c2w = torch.from_numpy(frame.transform_matrix @ np.diag([1, 1, -1, 1])).float()
+        c2w = torch.from_numpy(
+            align_matrix @ frame.transform_matrix @ np.diag([1, -1, -1, 1])
+        ).float()
 
-        # this works for all other datasets.
-        # TODO: make the processing transform inver the second column so it's compatible
         # TODO: Orient the model correctly
         #
         # c2w = torch.from_numpy(frame.transform_matrix @ np.diag([1, -1, -1, 1])).float()

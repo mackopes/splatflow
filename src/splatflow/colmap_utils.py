@@ -161,7 +161,10 @@ def create_transforms_json(processed_dataset_dir: pathlib.Path):
         # Apply coordinate system transformation
         transform_matrix = applied_transform @ transform_matrix
 
-        transform_matrix[:3, 2] *= -1
+        # transform_matrix[:3, 1:2] *= -1
+        # Not entirely sure. But this makes the transforms.json equivalent with other datasets
+        # processed by nerfstudio.
+        transform_matrix = transform_matrix @ np.diag([1, -1, -1, 1])
 
         frame = ColmapTransformsFrame(
             pathlib.Path(f"../input/{image.name}"), transform_matrix, image_id
