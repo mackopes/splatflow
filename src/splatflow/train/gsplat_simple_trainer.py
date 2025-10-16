@@ -3,25 +3,20 @@
 import json
 import math
 import os
+import pathlib
 import time
 from dataclasses import dataclass, field
-import pathlib
 from typing import Dict, List, Optional, Tuple, Union, cast
 
-
-# import imageio
 import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
 
-from .init_points import load_points_from_transforms
-
 # TODO: migrate to typer to reduce the amount dependencies
 import tyro
 import viser
 import yaml
-from .colmap import TransformsDataset
 
 # from datasets.traj import (
 #     generate_ellipse_path_z,
@@ -29,22 +24,24 @@ from .colmap import TransformsDataset
 #     generate_spiral_path,
 # )
 from fused_ssim import fused_ssim
-from torch import Tensor
-from torch.nn.parallel import DistributedDataParallel as DDP
-# from torch.utils.tensorboard import SummaryWriter
-
-# from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
-# from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
-from typing_extensions import Literal, assert_never
-from .utils import AppearanceOptModule, CameraOptModule, knn, rgb_to_sh, set_random_seed
-
 from gsplat import export_splats
 from gsplat.distributed import cli
 from gsplat.optimizers import SelectiveAdam
 from gsplat.rendering import rasterization
 from gsplat.strategy import DefaultStrategy, MCMCStrategy
-from .gsplat_viewer import GsplatViewer, GsplatRenderTabState
 from nerfview import CameraState, RenderTabState, apply_float_colormap
+from torch import Tensor
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+# from torch.utils.tensorboard import SummaryWriter
+# from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
+# from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+from typing_extensions import Literal, assert_never
+
+from .colmap import TransformsDataset
+from .gsplat_viewer import GsplatRenderTabState, GsplatViewer
+from .init_points import load_points_from_transforms
+from .utils import AppearanceOptModule, CameraOptModule, knn, rgb_to_sh, set_random_seed
 
 
 @dataclass
