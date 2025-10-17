@@ -1,3 +1,20 @@
+/* Two-pane layout */
+ModelsPane Horizontal {
+  width: 100%;
+}
+
+#models-tree-container {
+  border: round $panel;
+  padding: 0 1;
+  width: 50%;
+}
+
+#models-settings-container {
+  border: round $panel;
+  padding: 0 1;
+  width: 50%;
+}
+
 /* Process Dialog Styles */
 TrainDialog {
     align: center middle;
