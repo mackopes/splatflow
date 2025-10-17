@@ -131,19 +131,3 @@ class QueuePane(FlowTab):
                 log.lines[i] = Strip([Segment(queue_item.output[i])])
             for line in queue_item.output[log_length:]:
                 log.write(line)
-
-        # log.clear()
-        # log.write(queue_item.output[-1])
-
-        # If this is a different item or output was cleared, rebuild from scratch
-        # current_length = len(queue_item.output)
-        # if self._last_output_length == 0 or current_length < self._last_output_length:
-        #     log.clear()
-        #     for line in queue_item.output:
-        #         log.write(line)
-        #     self._last_output_length = current_length
-        # elif current_length > self._last_output_length:
-        #     # Only append new lines
-        #     for line in queue_item.output[self._last_output_length :]:
-        #         log.write(line)
-        #     self._last_output_length = current_length
