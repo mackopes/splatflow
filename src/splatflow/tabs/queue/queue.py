@@ -1,9 +1,12 @@
 from typing import TYPE_CHECKING
 
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import ListView, ListItem, Label, RichLog
 from textual.reactive import var
+from textual.strip import Strip
+from rich.segment import Segment
 
 from splatflow.tabs.flow_tab import FlowTab
 
@@ -125,7 +128,7 @@ class QueuePane(FlowTab):
                 log.write(line)
         else:
             for i in range(log_length):
-                log.lines[i] = queue_item.output[i]  # type: ignore
+                log.lines[i] = Strip([Segment(queue_item.output[i])])
             for line in queue_item.output[log_length:]:
                 log.write(line)
 
