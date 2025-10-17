@@ -13,3 +13,5 @@ to install
 - [] show progress bar on model training on the models tab
 - [] validate all inputs
 - [] clean up the training dialog
+- [] persistent queue
+- [] expose more dataset processing options
