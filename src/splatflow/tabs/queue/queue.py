@@ -8,7 +8,7 @@ from textual.reactive import var
 from splatflow.tabs.flow_tab import FlowTab
 
 if TYPE_CHECKING:
-    from splatflow.main import MyApp
+    from splatflow.main import SplatflowApp
 
 
 class QueuePane(FlowTab):
@@ -34,7 +34,7 @@ class QueuePane(FlowTab):
 
     def on_mount(self) -> None:
         """Set up queue watching."""
-        app: MyApp = self.app  # type: ignore
+        app: SplatflowApp = self.app  # type: ignore
         # Watch for queue changes
         self.watch(app, "queue", self.on_queue_changed)
 
@@ -106,7 +106,7 @@ class QueuePane(FlowTab):
         if not self.selected_item_id:
             return
 
-        app: MyApp = self.app  # type: ignore
+        app: SplatflowApp = self.app  # type: ignore
         queue_item = next(
             (item for item in app.queue if item.id == self.selected_item_id), None
         )
@@ -125,7 +125,7 @@ class QueuePane(FlowTab):
                 log.write(line)
         else:
             for i in range(log_length):
-                log.lines[i] = queue_item.output[i]
+                log.lines[i] = queue_item.output[i]  # type: ignore
             for line in queue_item.output[log_length:]:
                 log.write(line)
 
