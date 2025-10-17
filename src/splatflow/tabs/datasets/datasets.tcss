@@ -53,36 +53,42 @@ DatasetListItem > HorizontalGroup {
     text-align: right;
 }
 
-/* Process Dialog Styles */
 ProcessDialog {
-    align: center middle;
+  align: center middle;
 }
 
-#dialog {
-    width: 60;
-    height: auto;
-    background: $surface;
-    border: thick $primary;
-    padding: 1 2;
+TrainDialog {
+  align: center middle;
 }
 
-#dialog Label {
-    width: 100%;
-    margin-bottom: 1;
+.dialog {
+  width: 80;
+  height: auto;
+  background: $surface;
+  border: thick $primary;
+  padding: 1 2;
 }
 
-#name-input {
-    width: 100%;
-    margin-bottom: 1;
+.text-input {
+  padding: 0 1;
 }
 
-#buttons {
-    width: 100%;
-    height: auto;
-    align: center middle;
+
+.buttons {
+  height: auto;
 }
 
-#buttons Button {
-    margin: 0 1;
+#settings-scroll {
+  padding: 1 1;
+  border: round $panel;
 }
 
+.setting-row {
+  margin-top: 1;
+  height: auto;
+  width: 100%;
+}
+
+.setting-label{
+  min-width: 24;
+}

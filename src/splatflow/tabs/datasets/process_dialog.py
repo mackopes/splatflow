@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
-from textual.containers import Container, Vertical
+from textual.containers import Container, Horizontal
 from textual.widgets import Input, Button, Label
 from textual.binding import Binding
 
@@ -17,17 +17,18 @@ class ProcessDialog(ModalScreen[str | None]):
         self.dataset_name = dataset_name
 
     def compose(self) -> ComposeResult:
-        with Container(id="dialog"):
+        with Container(classes="dialog"):
             yield Label(f"Process dataset: {self.dataset_name}")
-            yield Label("Enter name for processed dataset:")
+            yield Label("Enter name for processed dataset:", classes="mt-1")
             yield Input(
                 placeholder="e.g., hloc_superpoint",
                 value="processed",
+                classes="text-input",
                 id="name-input",
             )
-            with Vertical(id="buttons"):
-                yield Button("Process", variant="primary", id="process")
-                yield Button("Cancel", id="cancel")
+            with Horizontal(classes="buttons mt-1"):
+                yield Button("Process", variant="primary", id="process", compact=True)
+                yield Button("Cancel", id="cancel", compact=True)
 
     def on_mount(self) -> None:
         """Focus the input when dialog opens."""

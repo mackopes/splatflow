@@ -1,7 +1,7 @@
 from splatflow.train.gsplat_simple_trainer import entrypoint
 import dataclasses
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Literal, Tuple
+from typing import Any, Dict, List, Optional, Literal, Union
 
 
 @dataclasses.dataclass
@@ -11,8 +11,14 @@ class GsplatCommandSettings:
     dataset_dir: Path  # data-dir
     output_dir: Path  # result-dir
 
+    # Strategy for GS densification
+    strategy: Literal["default", "mcmc"] = dataclasses.field(default="default")
+
     # Downsample factor for the dataset
     data_factor: int = 4
+
+    # A global factor to scale the number of training steps
+    steps_scaler: float = 1.0
 
     # Random crop size for training  (experimental)
     patch_size: Optional[int] = None
@@ -32,8 +38,6 @@ class GsplatCommandSettings:
 
     # Batch size for training. Learning rates are scaled automatically
     batch_size: int = 1
-    # A global factor to scale the number of training steps
-    steps_scaler: float = 1.0
 
     # This will be controlled by step scaler
     # # Number of training steps
@@ -65,11 +69,6 @@ class GsplatCommandSettings:
     near_plane: float = 0.01
     # Far plane clipping distance
     far_plane: float = 1e10
-
-    # Strategy for GS densification
-    # strategy: Union[DefaultStrategy, MCMCStrategy] = field(
-    #     default_factory=DefaultStrategy
-    # )
 
     # TODO: Disabled for now
     # Use packed mode for rasterization, this leads to less memory usage but slightly slower.
@@ -151,6 +150,38 @@ class GsplatCommandSettings:
         return {
             "dataset_dir": str(self.dataset_dir),
             "output_dir": str(self.output_dir),
+            "strategy": self.strategy,
+            "data_factor": self.data_factor,
+            "steps_scaler": self.steps_scaler,
+            "patch_size": self.patch_size,
+            "global_scale": self.global_scale,
+            "normalize_world_space": self.normalize_world_space,
+            "camera_model": self.camera_model,
+            "batch_size": self.batch_size,
+            "init_type": self.init_type,
+            "init_num_pts": self.init_num_pts,
+            "init_extent": self.init_extent,
+            "sh_degree": self.sh_degree,
+            "sh_degree_interval": self.sh_degree_interval,
+            "init_opa": self.init_opa,
+            "init_scale": self.init_scale,
+            "ssim_lambda": self.ssim_lambda,
+            "near_plane": self.near_plane,
+            "far_plane": self.far_plane,
+            "antialiased": self.antialiased,
+            "random_bkgd": self.random_bkgd,
+            "means_lr": self.means_lr,
+            "scales_lr": self.scales_lr,
+            "opacities_lr": self.opacities_lr,
+            "quats_lr": self.quats_lr,
+            "sh0_lr": self.sh0_lr,
+            "shN_lr": self.shN_lr,
+            "opacity_reg": self.opacity_reg,
+            "scale_reg": self.scale_reg,
+            "pose_opt": self.pose_opt,
+            "pose_opt_lr": self.pose_opt_lr,
+            "pose_opt_reg": self.pose_opt_reg,
+            "use_fused_bilagrid": self.use_fused_bilagrid,
         }
 
     def build(self) -> List[str]:
@@ -159,15 +190,74 @@ class GsplatCommandSettings:
             "poetry",
             "run",
             "train",
-            "default",
+            self.strategy,
             "--data-dir",
-            self.dataset_dir,
+            str(self.dataset_dir),
             "--result-dir",
-            self.output_dir,
-            "--save-ply",
-            "--steps-scaler",
-            "0.1",
+            str(self.output_dir),
         ]
+
+        # Add all optional parameters
+        cmd.extend(["--data-factor", str(self.data_factor)])
+        cmd.extend(["--steps-scaler", str(self.steps_scaler)])
+
+        if self.patch_size is not None:
+            cmd.extend(["--patch-size", str(self.patch_size)])
+
+        cmd.extend(["--global-scale", str(self.global_scale)])
+
+        if self.normalize_world_space:
+            cmd.append("--normalize-world-space")
+        else:
+            cmd.append("--no-normalize-world-space")
+
+        cmd.extend(["--camera-model", self.camera_model])
+        cmd.extend(["--batch-size", str(self.batch_size)])
+        cmd.extend(["--init-type", self.init_type])
+        cmd.extend(["--init-num-pts", str(self.init_num_pts)])
+        cmd.extend(["--init-extent", str(self.init_extent)])
+        cmd.extend(["--sh-degree", str(self.sh_degree)])
+        cmd.extend(["--sh-degree-interval", str(self.sh_degree_interval)])
+        cmd.extend(["--init-opa", str(self.init_opa)])
+        cmd.extend(["--init-scale", str(self.init_scale)])
+        cmd.extend(["--ssim-lambda", str(self.ssim_lambda)])
+        cmd.extend(["--near-plane", str(self.near_plane)])
+        cmd.extend(["--far-plane", str(self.far_plane)])
+
+        if self.antialiased:
+            cmd.append("--antialiased")
+        else:
+            cmd.append("--no-antialiased")
+
+        if self.random_bkgd:
+            cmd.append("--random-bkgd")
+        else:
+            cmd.append("--no-random-bkgd")
+
+        cmd.extend(["--means-lr", str(self.means_lr)])
+        cmd.extend(["--scales-lr", str(self.scales_lr)])
+        cmd.extend(["--opacities-lr", str(self.opacities_lr)])
+        cmd.extend(["--quats-lr", str(self.quats_lr)])
+        cmd.extend(["--sh0-lr", str(self.sh0_lr)])
+        cmd.extend(["--shN-lr", str(self.shN_lr)])
+        cmd.extend(["--opacity-reg", str(self.opacity_reg)])
+        cmd.extend(["--scale-reg", str(self.scale_reg)])
+
+        if self.pose_opt:
+            cmd.append("--pose-opt")
+        else:
+            cmd.append("--no-pose-opt")
+
+        cmd.extend(["--pose-opt-lr", str(self.pose_opt_lr)])
+        cmd.extend(["--pose-opt-reg", str(self.pose_opt_reg)])
+
+        if self.use_fused_bilagrid:
+            cmd.append("--use-fused-bilagrid")
+        else:
+            cmd.append("--no-use-fused-bilagrid")
+
+        # Always save ply files
+        cmd.append("--save-ply")
 
         return cmd
 
