@@ -48,17 +48,12 @@ class SplatflowData:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return {
-            "datasets": [d.to_dict() for d in self.datasets]
-        }
+        return {"datasets": [d.to_dict() for d in self.datasets]}
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SplatflowData":
         """Create from dictionary loaded from JSON."""
-        datasets = [
-            ProcessedDataset.from_dict(d)
-            for d in data.get("datasets", [])
-        ]
+        datasets = [ProcessedDataset.from_dict(d) for d in data.get("datasets", [])]
         return cls(datasets=datasets)
 
     def save(self, path: pathlib.Path):

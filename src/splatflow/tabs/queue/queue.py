@@ -129,6 +129,9 @@ class QueuePane(FlowTab):
             for line in queue_item.output[log_length:]:
                 log.write(line)
 
+        # log.clear()
+        # log.write(queue_item.output[-1])
+
         # If this is a different item or output was cleared, rebuild from scratch
         # current_length = len(queue_item.output)
         # if self._last_output_length == 0 or current_length < self._last_output_length:

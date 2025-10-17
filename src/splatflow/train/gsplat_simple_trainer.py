@@ -1218,7 +1218,7 @@ def main(local_rank: int, world_rank, world_size: int, cfg: Config):
     #     time.sleep(1000000)
 
 
-if __name__ == "__main__":
+def entrypoint():
     """
     Usage:
 
@@ -1256,6 +1256,7 @@ if __name__ == "__main__":
 
     # Import BilateralGrid and related functions based on configuration
     if cfg.use_bilateral_grid or cfg.use_fused_bilagrid:
+        # TODO: handle this better. this is awful
         if cfg.use_fused_bilagrid:
             cfg.use_bilateral_grid = True
             from fused_bilagrid import (
@@ -1289,3 +1290,7 @@ if __name__ == "__main__":
         assert cfg.with_eval3d, "Training with UT requires setting `with_eval3d` flag."
 
     cli(main, cfg, verbose=True)
+
+
+if __name__ == "__main__":
+    entrypoint()

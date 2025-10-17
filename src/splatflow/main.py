@@ -10,7 +10,7 @@ from splatflow.config import Config, load_config
 from splatflow.initialise import initialise
 from splatflow.worker.queue_manager import QueueItem
 from splatflow.tabs.datasets.datasets import DatasetsPane
-from splatflow.tabs.models import ModelsPane
+from splatflow.tabs.models.models import ModelsPane
 from splatflow.tabs.queue.queue import QueuePane
 from splatflow.tabs.flow_tab import FlowTab
 
@@ -22,7 +22,12 @@ TABS: List[Tuple[str, Type[FlowTab]]] = [
 
 
 class SplatflowApp(App):
-    CSS_PATH = ["app.tcss", "tabs/datasets/datasets.tcss", "tabs/queue/queue.tcss"]
+    CSS_PATH = [
+        "app.tcss",
+        "tabs/datasets/datasets.tcss",
+        "tabs/queue/queue.tcss",
+        "tabs/models/models.tcss",
+    ]
 
     BINDINGS = [
         ("t", "next_tab", "Next tab"),
@@ -120,11 +125,14 @@ class SplatflowApp(App):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 # TODO: Specify the window width (ncols) for TQDM
+                # TODO Remove the CC and CXX from here
                 env={
                     **os.environ,
                     "PYTHONUNBUFFERED": "2",
                     "TQDM_MININTERVAL": "1",
                     "TQDM_ASCII": "True",
+                    "CC": "gcc-13",
+                    "CXX": "g++-13",
                 },
             )
 
