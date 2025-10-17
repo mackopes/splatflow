@@ -1,3 +1,20 @@
+/* Two-pane layout */
+DatasetsPane Horizontal {
+  width: 100%;
+}
+
+#datasets-tree-container {
+  border: round $panel;
+  padding: 0 1;
+  width: 50%;
+}
+
+#datasets-settings-container {
+  border: round $panel;
+  padding: 0 1;
+  width: 50%;
+}
+
 DatasetsPane > ListView {
   background: $background;
 }

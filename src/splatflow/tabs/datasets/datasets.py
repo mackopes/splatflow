@@ -4,16 +4,18 @@ import json
 
 from splatflow.tabs.datasets.train_dialog import TrainDialog
 from textual.app import ComposeResult
+from textual.containers import Horizontal, Vertical
 from textual.events import Resize
-from textual.widgets import Tree
+from textual.reactive import var
+from textual.widgets import Tree, Static
 from rich.text import Text
+from rich.json import JSON
 
 from .dataset import Dataset, ProcessedDataset, ProcessedDatasetState
 from .scanner import scan_datasets
 from splatflow.tabs.flow_tab import FlowTab
 
 from splatflow.scripts.process import HlocCommandSettings
-from splatflow.scripts.train import GsplatCommandSettings
 from .process_dialog import ProcessDialog
 from splatflow.tabs.models.model import (
     ProcessedModel,
@@ -27,6 +29,10 @@ if TYPE_CHECKING:
 
 class DatasetsPane(FlowTab):
     datasets: List[Dataset] = []
+    selected_node_data: var[Dataset | tuple[Dataset, ProcessedDataset] | None] = var(
+        None
+    )
+
     BINDINGS = [
         ("i", "import_dataset", "Import Dataset"),
         ("p", "process_dataset", "Process dataset"),
@@ -34,9 +40,15 @@ class DatasetsPane(FlowTab):
     ]
 
     def compose(self) -> ComposeResult:
-        tree: Tree[Dataset] = Tree("Datasets")
-        tree.show_root = False  # Hide the root, show datasets directly
-        yield tree
+        with Horizontal():
+            with Vertical(id="datasets-tree-container") as v:
+                v.border_title = "Datasets"
+                tree: Tree[Dataset] = Tree("Datasets", id="datasets-tree")
+                tree.show_root = False  # Hide the root, show datasets directly
+                yield tree
+            with Vertical(id="datasets-settings-container") as v:
+                v.border_title = "Settings"
+                yield Static("", id="datasets-settings")
 
     def focus_content(self) -> None:
         """Focus the datasets tree."""
@@ -65,7 +77,7 @@ class DatasetsPane(FlowTab):
 
         # Get the available width for formatting
         # Use pane width, subtract space for tree guides/icons
-        available_width = self.size.width - 2
+        available_width = self.size.width // 2 - 5
 
         for dataset in self.datasets:
             # Format the dataset label with styled components
@@ -106,8 +118,36 @@ class DatasetsPane(FlowTab):
                     dataset_node.add_leaf(display_name, data=(dataset, processed))
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
-        """Refresh bindings when tree cursor moves."""
+        """Refresh bindings and update selected data when tree cursor moves."""
         self.refresh_bindings()
+        # Update selected node data for settings display
+        if event.node and event.node.data:
+            self.selected_node_data = event.node.data
+        else:
+            self.selected_node_data = None
+
+    def watch_selected_node_data(
+        self, selected_node_data: Dataset | tuple[Dataset, ProcessedDataset] | None
+    ) -> None:
+        """Update settings display when selection changes."""
+        settings_widget = self.query_one("#datasets-settings", Static)
+
+        if selected_node_data is None:
+            settings_widget.update("")
+            return
+
+        # Check if it's a tuple (child node - ProcessedDataset)
+        if isinstance(selected_node_data, tuple) and len(selected_node_data) == 2:
+            dataset, processed_dataset = selected_node_data
+            # Display the ProcessedDataset settings as formatted JSON
+            settings_widget.update(
+                JSON(json.dumps(processed_dataset.settings, indent=2))
+            )
+        else:
+            # It's a parent Dataset node - show placeholder
+            settings_widget.update(
+                "[dim]Select a processed dataset to view settings[/dim]"
+            )
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check if an action should be enabled based on current state."""
