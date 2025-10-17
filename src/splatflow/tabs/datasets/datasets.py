@@ -15,7 +15,11 @@ from splatflow.tabs.flow_tab import FlowTab
 from splatflow.scripts.process import HlocCommandSettings
 from splatflow.scripts.train import GsplatCommandSettings
 from .process_dialog import ProcessDialog
-from splatflow.tabs.models.model import ProcessedModel, ProcessedModelState, SplatflowModelData
+from splatflow.tabs.models.model import (
+    ProcessedModel,
+    ProcessedModelState,
+    SplatflowModelData,
+)
 
 if TYPE_CHECKING:
     from splatflow.main import SplatflowApp
@@ -182,7 +186,9 @@ class DatasetsPane(FlowTab):
         model_name = command_settings.output_dir.name
 
         # Get the models directory for this dataset
-        models_dataset_dir = Path(app.config.splatflow_data_root) / "models" / dataset.name
+        models_dataset_dir = (
+            Path(app.config.splatflow_data_root) / "models" / dataset.name
+        )
         models_dataset_dir.mkdir(parents=True, exist_ok=True)
 
         # Path to the metadata JSON file
@@ -212,6 +218,7 @@ class DatasetsPane(FlowTab):
         model_metadata = load_model_metadata()
         model_metadata.models.append(processed_model)
         model_metadata.save(metadata_path)
+        app.refresh_models_tab()
 
         # Define callbacks to update the state
         def before_exec_callback():
@@ -222,6 +229,7 @@ class DatasetsPane(FlowTab):
                     m.state = ProcessedModelState.PROCESSING
                     break
             metadata.save(metadata_path)
+            app.refresh_models_tab()
 
         def on_success_callback():
             """Update state to READY on success."""
@@ -231,6 +239,7 @@ class DatasetsPane(FlowTab):
                     m.state = ProcessedModelState.READY
                     break
             metadata.save(metadata_path)
+            app.refresh_models_tab()
 
         def on_error_callback():
             """Update state to FAILED on error."""
@@ -240,13 +249,14 @@ class DatasetsPane(FlowTab):
                     m.state = ProcessedModelState.FAILED
                     break
             metadata.save(metadata_path)
+            app.refresh_models_tab()
 
         # Build the command
         command = command_settings.build()
 
         # Display the command in a toast notification
-        command_str = " ".join(str(c) for c in command)
-        app.notify(f"Training command: {command_str}", title="Training Command")
+        # command_str = " ".join(str(c) for c in command)
+        # app.notify(f"Training command: {command_str}", title="Training Command")
 
         # Add to queue with callbacks
         app.add_to_queue(

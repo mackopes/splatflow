@@ -1,8 +1,10 @@
 from typing import Callable, List, Tuple, Type
 import asyncio
 import os
+import time
 
 from textual.app import App, ComposeResult
+from textual.css.query import NoMatches
 from textual.reactive import reactive
 from textual.widgets import Footer, TabbedContent, TabPane
 
@@ -92,6 +94,18 @@ class SplatflowApp(App):
         self.mutate_reactive(SplatflowApp.queue)
         return item
 
+    async def _schedule_delayed_update(self, delay: float, state: dict) -> None:
+        """Schedule a delayed UI update that can be cancelled."""
+        try:
+            await asyncio.sleep(delay)
+            # Only update if this task wasn't cancelled
+            if state.get("pending_task") == asyncio.current_task():
+                self.mutate_reactive(SplatflowApp.queue)
+                state["last_update_time"] = time.time()
+                state["pending_task"] = None
+        except asyncio.CancelledError:
+            pass  # Task was cancelled, no update needed
+
     async def process_queue_worker(self) -> None:
         """Background worker that processes queue items."""
         while True:
@@ -139,16 +153,43 @@ class SplatflowApp(App):
             # Helper to read stream byte-by-byte for real-time output
             async def read_stream(stream, prefix=""):
                 buffer = ""
+                min_interval = 1.0  # 1 second between UI updates
+                # Shared state that can be modified by both trigger_update and scheduled task
+                state = {"last_update_time": 0, "pending_task": None}
+
+                async def trigger_update():
+                    """Trigger UI update with debouncing."""
+                    current_time = time.time()
+
+                    # Cancel any pending update
+                    if state["pending_task"]:
+                        state["pending_task"].cancel()
+                        state["pending_task"] = None
+
+                    # Check if we can update immediately
+                    if current_time - state["last_update_time"] >= min_interval:
+                        self.mutate_reactive(SplatflowApp.queue)
+                        state["last_update_time"] = current_time
+                    else:
+                        # Schedule delayed update
+                        delay = min_interval - (current_time - state["last_update_time"])
+                        task = asyncio.create_task(
+                            self._schedule_delayed_update(delay, state)
+                        )
+                        state["pending_task"] = task
+
                 while True:
                     # Read one byte at a time for immediate output
-                    # TODO: Maybe we can increase this?
                     byte = await stream.read(1)
                     if not byte:
                         # Flush any remaining buffer content
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
                             item.add_output(output_line)
-                            self.mutate_reactive(SplatflowApp.queue)
+                        # Cancel pending and force final update
+                        if state["pending_task"]:
+                            state["pending_task"].cancel()
+                        self.mutate_reactive(SplatflowApp.queue)
                         break
 
                     try:
@@ -162,14 +203,14 @@ class SplatflowApp(App):
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
                             item.add_output(output_line)
-                            self.mutate_reactive(SplatflowApp.queue)
+                            await trigger_update()
                         buffer = ""
                     elif char == "\r":
                         if buffer.strip():
                             output_line = f"{prefix}{buffer}" if prefix else buffer
                             # for \r we want to overwrite the last line
                             item.output[-1] = output_line
-                            self.mutate_reactive(SplatflowApp.queue)
+                            await trigger_update()
                         buffer = ""
                     else:
                         buffer += char
@@ -207,6 +248,22 @@ class SplatflowApp(App):
         """Switch to the queue tab."""
         tabbed_content = self.query_one(TabbedContent)
         tabbed_content.active = "queue"
+
+    def refresh_models_tab(self) -> None:
+        """Refresh the models tab to show updated data.
+
+        Note: Alternative approach would be using Textual's message system:
+        - Define custom ModelsChanged(Message) class
+        - Post message: self.app.post_message(ModelsChanged())
+        - Handle in ModelsPane: def on_models_changed(self, message: ModelsChanged)
+        """
+        from splatflow.tabs.models.models import ModelsPane
+
+        try:
+            models_pane = self.query_one(ModelsPane)
+            models_pane.rescan_and_repopulate()
+        except NoMatches:
+            pass  # Models tab not mounted yet
 
 
 def main():

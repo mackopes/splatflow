@@ -66,3 +66,10 @@ class ModelsPane(FlowTab):
                     if model.state != ProcessedModelState.READY:
                         display_name = f"{model.name} ({model.state.value})"
                     dataset_node.add_leaf(display_name, data=model)
+
+    def rescan_and_repopulate(self) -> None:
+        """Rescan models directory and repopulate the tree."""
+        app: SplatflowApp = self.app  # type: ignore
+        config = app.config
+        self.models = scan_models(config.splatflow_data_root)
+        self.populate_tree()
