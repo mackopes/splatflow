@@ -83,15 +83,15 @@ class Config:
     # Number of training steps
     max_steps: int = 30_000
     # Steps to evaluate the model
-    eval_steps: List[int] = field(default_factory=lambda: [7_000, 30_000])
+    eval_steps: List[int] = field(default_factory=lambda: [])
     # Steps to save the model
-    save_steps: List[int] = field(default_factory=lambda: [7_000, 30_000])
+    save_steps: List[int] = field(default_factory=lambda: [30_000])
     # Whether to save ply file (storage size can be large)
     save_ply: bool = False
     # Steps to save the model as ply
-    ply_steps: List[int] = field(default_factory=lambda: [7_000, 30_000])
+    ply_steps: List[int] = field(default_factory=lambda: [30_000])
     # Whether to disable video generation during training and evaluation
-    disable_video: bool = False
+    disable_video: bool = True
 
     # Initialization strategy
     init_type: Literal["sfm", "random"] = "sfm"
@@ -129,7 +129,7 @@ class Config:
     antialiased: bool = False
 
     # Use random background for training to discourage transparency
-    random_bkgd: bool = False
+    random_bkgd: bool = True
 
     # LR for 3D point positions
     means_lr: float = 1.6e-4

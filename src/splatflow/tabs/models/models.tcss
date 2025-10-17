@@ -15,7 +15,7 @@ ModelsPane Horizontal {
   width: 50%;
 }
 
-/* Process Dialog Styles */
+/* Dialog Styles */
 TrainDialog {
     align: center middle;
 }

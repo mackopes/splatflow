@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, List
 import json
+import shutil
+from pathlib import Path
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -11,7 +13,8 @@ from rich.json import JSON
 
 from splatflow.tabs.flow_tab import FlowTab
 from .scanner import DatasetModels, scan_models
-from .model import ProcessedModel, ProcessedModelState
+from .model import ProcessedModel, ProcessedModelState, SplatflowModelData
+from splatflow.components.delete_dialog import DeleteDialog
 
 if TYPE_CHECKING:
     from splatflow.main import SplatflowApp
@@ -20,6 +23,10 @@ if TYPE_CHECKING:
 class ModelsPane(FlowTab):
     models: List[DatasetModels] = []
     selected_node_data: var[DatasetModels | object | None] = var(None)
+
+    BINDINGS = [
+        ("d", "delete_model", "Delete model"),
+    ]
 
     def compose(self) -> ComposeResult:
         with Horizontal():
@@ -52,6 +59,7 @@ class ModelsPane(FlowTab):
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
         """Update selected data when tree cursor moves."""
+        self.refresh_bindings()
         if event.node and event.node.data:
             self.selected_node_data = event.node.data
         else:
@@ -72,6 +80,93 @@ class ModelsPane(FlowTab):
         else:
             # It's a parent DatasetModels node - show placeholder
             settings_widget.update("[dim]Select a model to view settings[/dim]")
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Check if an action should be enabled based on current state."""
+        tree = self.query_one(Tree)
+        if not tree.cursor_node:
+            return False  # Disabled when no node selected
+
+        if action == "delete_model":
+            # Only enable delete for ProcessedModel (child) nodes
+            node_data = tree.cursor_node.data
+            if not node_data or not isinstance(node_data, ProcessedModel):
+                return False
+            return True
+
+        return True  # Enable all other actions by default
+
+    def action_delete_model(self):
+        """Delete the currently selected model."""
+        tree = self.query_one(Tree)
+        if not tree.cursor_node:
+            return
+
+        # Get the ProcessedModel from the cursor node's data
+        model = tree.cursor_node.data
+        if not isinstance(model, ProcessedModel):
+            return
+
+        # Run the dialog in a worker (required for push_screen_wait)
+        self.run_worker(self._delete_model_worker(model))
+
+    async def _delete_model_worker(self, model: ProcessedModel):
+        """Worker method to handle async dialog interaction for deletion."""
+        # Show confirmation dialog
+        confirmed = await self.app.push_screen_wait(
+            DeleteDialog(f"Delete model: {model.dataset_name}/{model.name}?")
+        )
+
+        if not confirmed:  # User cancelled
+            return
+
+        app: SplatflowApp = self.app  # type: ignore
+
+        # Get the models directory for this dataset
+        models_dataset_dir = (
+            Path(app.config.splatflow_data_root) / "models" / model.dataset_name
+        )
+        metadata_path = models_dataset_dir / "splatflow_data.json"
+        model_dir = models_dataset_dir / model.name
+
+        try:
+            # 1. Remove from JSON metadata
+            if metadata_path.exists():
+                with open(metadata_path, "r") as f:
+                    data = json.load(f)
+
+                model_data = SplatflowModelData.from_dict(data)
+
+                # Remove the model from the list
+                model_data.models = [
+                    m
+                    for m in model_data.models
+                    if not (m.name == model.name and m.dataset_name == model.dataset_name)
+                ]
+
+                # Save or delete the metadata file
+                if model_data.models:
+                    # Still have models, save updated metadata
+                    model_data.save(metadata_path)
+                else:
+                    # No models left, delete the metadata file
+                    metadata_path.unlink()
+
+            # 2. Delete the model's directory
+            if model_dir.exists():
+                shutil.rmtree(model_dir)
+
+            # 3. If no models left, delete the parent dataset directory
+            if models_dataset_dir.exists() and not any(models_dataset_dir.iterdir()):
+                shutil.rmtree(models_dataset_dir)
+
+            # 4. Refresh the models tab
+            self.rescan_and_repopulate()
+
+            app.notify(f"Deleted model: {model.dataset_name}/{model.name}", title="Model Deleted")
+
+        except Exception as e:
+            app.notify(f"Error deleting model: {str(e)}", title="Error", severity="error")
 
     def populate_tree(self) -> None:
         """Populate the tree with models after layout."""

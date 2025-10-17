@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, List
 from pathlib import Path
 import json
+import shutil
 
 from splatflow.tabs.datasets.train_dialog import TrainDialog
 from textual.app import ComposeResult
@@ -10,6 +11,8 @@ from textual.reactive import var
 from textual.widgets import Tree, Static
 from rich.text import Text
 from rich.json import JSON
+
+from splatflow.components.delete_dialog import DeleteDialog
 
 from .dataset import Dataset, ProcessedDataset, ProcessedDatasetState
 from .scanner import scan_datasets
@@ -37,6 +40,7 @@ class DatasetsPane(FlowTab):
         ("i", "import_dataset", "Import Dataset"),
         ("p", "process_dataset", "Process dataset"),
         ("m", "train_dataset", "Train dataset"),
+        ("d", "delete_dataset", "Delete dataset"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -181,6 +185,19 @@ class DatasetsPane(FlowTab):
 
             return True  # Enabled for child ProcessedDataset nodes
 
+        if action == "delete_dataset":
+            # Only enable delete for ProcessedDataset (child) nodes
+            # Child nodes have tuple data: (dataset, processed_dataset)
+            if tree.cursor_node.parent == tree.root:
+                return False  # Disabled for top-level Dataset nodes
+
+            # Verify we have valid tuple data
+            node_data = tree.cursor_node.data
+            if not node_data or not isinstance(node_data, tuple) or len(node_data) != 2:
+                return False
+
+            return True  # Enabled for child ProcessedDataset nodes
+
         return True  # Enable all other actions by default
 
     def action_import_dataset(self):
@@ -309,6 +326,89 @@ class DatasetsPane(FlowTab):
 
         # Switch to queue tab
         app.switch_to_queue_tab()
+
+    def action_delete_dataset(self):
+        """Delete the currently selected processed dataset."""
+        tree = self.query_one(Tree)
+        if not tree.cursor_node:
+            return
+
+        # Get both dataset and processed_dataset from the cursor node's data
+        node_data = tree.cursor_node.data
+        if not node_data or not isinstance(node_data, tuple) or len(node_data) != 2:
+            return
+
+        dataset, processed_dataset = node_data
+        if not isinstance(dataset, Dataset) or not isinstance(
+            processed_dataset, ProcessedDataset
+        ):
+            return
+
+        # Run the dialog in a worker (required for push_screen_wait)
+        self.run_worker(self._delete_dataset_worker(dataset, processed_dataset))
+
+    async def _delete_dataset_worker(
+        self, dataset: Dataset, processed_dataset: ProcessedDataset
+    ):
+        """Worker method to handle async dialog interaction for deletion."""
+        # Show confirmation dialog
+        confirmed = await self.app.push_screen_wait(
+            DeleteDialog(
+                f"Delete processed dataset: {dataset.name}/{processed_dataset.name}?"
+            )
+        )
+
+        if not confirmed:  # User cancelled
+            return
+
+        app: SplatflowApp = self.app  # type: ignore
+
+        # Path to the processed dataset directory
+        processed_dataset_dir = dataset.dataset_dir / processed_dataset.name
+        metadata_path = dataset._splatflow_data_path
+
+        try:
+            # 1. Remove from JSON metadata
+            if metadata_path.exists():
+                with open(metadata_path, "r") as f:
+                    data = json.load(f)
+
+                from .dataset import SplatflowData
+
+                splatflow_data = SplatflowData.from_dict(data)
+
+                # Remove the processed dataset from the list
+                splatflow_data.datasets = [
+                    pd for pd in splatflow_data.datasets if pd.name != processed_dataset.name
+                ]
+
+                # Save updated metadata (even if empty - keep the file)
+                splatflow_data.save(metadata_path)
+
+            # 2. Delete the processed dataset's directory
+            if processed_dataset_dir.exists():
+                shutil.rmtree(processed_dataset_dir)
+
+            # Note: We do NOT delete the parent dataset directory, even if no processed datasets remain
+            # The parent dataset directory contains the raw images in the "input" folder
+
+            # 3. Refresh the tree
+            app: SplatflowApp = self.app  # type: ignore
+            config = app.config
+            self.datasets = scan_datasets(config.splatflow_data_root)
+            self.populate_tree()
+
+            app.notify(
+                f"Deleted processed dataset: {dataset.name}/{processed_dataset.name}",
+                title="Processed Dataset Deleted",
+            )
+
+        except Exception as e:
+            app.notify(
+                f"Error deleting processed dataset: {str(e)}",
+                title="Error",
+                severity="error",
+            )
 
     def action_process_dataset(self):
         """Process the currently selected dataset."""

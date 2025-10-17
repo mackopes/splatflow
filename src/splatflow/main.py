@@ -29,6 +29,7 @@ class SplatflowApp(App):
         "tabs/datasets/datasets.tcss",
         "tabs/queue/queue.tcss",
         "tabs/models/models.tcss",
+        "components/delete_dialog.tcss",
     ]
 
     BINDINGS = [
@@ -172,7 +173,9 @@ class SplatflowApp(App):
                         state["last_update_time"] = current_time
                     else:
                         # Schedule delayed update
-                        delay = min_interval - (current_time - state["last_update_time"])
+                        delay = min_interval - (
+                            current_time - state["last_update_time"]
+                        )
                         task = asyncio.create_task(
                             self._schedule_delayed_update(delay, state)
                         )
