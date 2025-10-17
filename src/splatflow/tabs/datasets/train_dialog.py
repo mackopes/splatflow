@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Checkbox
 
@@ -39,7 +39,8 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
                 id="model-name",
             )
 
-            with VerticalScroll(id="settings-scroll"):
+            with VerticalScroll(id="settings-scroll", classes="mt-1") as v:
+                v.border_title = "Settings"
                 # Strategy
                 with Horizontal(classes="setting-row"):
                     yield Label("Strategy:", classes="setting-label")
@@ -381,7 +382,7 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
                         compact=True,
                     )
 
-            with Vertical(id="buttons"):
+            with Horizontal(id="buttons"):
                 yield Button("Train", variant="primary", id="train")
                 yield Button("Cancel", id="cancel")
 
@@ -409,7 +410,9 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
 
         # Read all settings from inputs
         strategy = self.query_one("#strategy", Select).value
-        data_factor = int(self.query_one("#data-factor", Select).value)
+        data_factor_value = self.query_one("#data-factor", Select).value
+        assert data_factor_value is not Select.BLANK
+        data_factor = int(data_factor_value)  # type: ignore we asserted it's not blank, but typechecker doesn't know
         steps_scaler = float(self.query_one("#steps-scaler", Input).value)
 
         # Patch size is optional
@@ -482,9 +485,15 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
             use_fused_bilagrid=use_fused_bilagrid,
         )
 
-    # def on_input_submitted(self, event: Input.Submitted) -> None:
-    #     """Allow Enter key to submit."""
-    #     self.dismiss(event.value)
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Start training when Enter is pressed on any input."""
+        command_settings = self._construct_command()
+        self.dismiss(command_settings)
 
     def action_cancel(self) -> None:
         self.dismiss(None)
+
+    def action_train(self) -> None:
+        """Start training when Enter is pressed."""
+        command_settings = self._construct_command()
+        self.dismiss(command_settings)
