@@ -15,3 +15,4 @@ to install
 - [] clean up the training dialog
 - [] persistent queue
 - [] expose more dataset processing options
+- [] make the output tab selectable and copyable
