@@ -16,7 +16,7 @@ class HlocCommandSettings:
     matching_method: MatchingMethod = "vocab_tree"
     feature_type: Feature = "superpoint_max"
     matcher_type: Matcher = "superglue"
-    num_matched: int = 200
+    num_matched: int = 60
     use_single_camera_mode: bool = False
     camera_model: CameraModel = CameraModel.OPENCV
 

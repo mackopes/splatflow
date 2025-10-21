@@ -1,0 +1,52 @@
+/* Viewer Dialog Styles */
+ViewerDialog {
+    align: center middle;
+}
+
+#viewer-dialog {
+    width: 70;
+    height: auto;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+}
+
+#viewer-title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1;
+    padding: 1 0;
+}
+
+#viewer-status-container {
+    width: 100%;
+    height: auto;
+    align: center middle;
+    padding: 1 0;
+    margin-bottom: 1;
+}
+
+#viewer-status {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#viewer-url {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#viewer-buttons {
+    width: auto;
+    height: auto;
+    align: center middle;
+}
+
+#viewer-buttons Button {
+    width: auto;
+    min-width: 12;
+    padding: 0 2;
+    margin: 0 1;
+}

@@ -32,6 +32,7 @@ dependencies = [
 splatflow = "splatflow.main:main"
 process = "splatflow.scripts.process:main"
 train = "splatflow.scripts.train:main"
+view_model = "splatflow.scripts.view_model:entrypoint"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.13.2"

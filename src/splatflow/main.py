@@ -30,6 +30,7 @@ class SplatflowApp(App):
         "tabs/queue/queue.tcss",
         "tabs/models/models.tcss",
         "components/delete_dialog.tcss",
+        "components/viewer_dialog.tcss",
     ]
 
     BINDINGS = [
