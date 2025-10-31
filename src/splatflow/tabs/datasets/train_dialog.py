@@ -34,7 +34,7 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
             yield Label("Model name:", classes="mt-1")
             yield Input(
                 placeholder="e.g., model_name",
-                value="model_name",
+                value="default",
                 classes="text-input",
                 id="model-name",
             )
@@ -58,7 +58,7 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
                     yield Label("Data factor:", classes="setting-label")
                     yield Select(
                         [("1", 1), ("2", 2), ("4", 4), ("8", 8), ("16", 16)],
-                        value=4,
+                        value=1,
                         allow_blank=False,
                         id="data-factor",
                         classes="setting-input",
@@ -70,7 +70,7 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
                     yield Label("Steps scaler:", classes="setting-label")
                     yield Input(
                         type="number",
-                        value="3.0",
+                        value="4.0",
                         id="steps-scaler",
                         classes="setting-input",
                         compact=True,
