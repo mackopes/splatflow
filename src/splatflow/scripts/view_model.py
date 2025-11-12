@@ -84,9 +84,12 @@ class ModelViewer:
             if "features" not in self.splats:
                 raise ValueError("Appearance module requires features in checkpoint")
 
+            app_module_checkpoint = checkpoint["app_module"]
+
             feature_dim = self.splats["features"].shape[-1]
             sh_degree = 3  # Default, could be inferred from shN shape
-            app_embed_dim = 16  # Default
+
+            app_embed_dim = app_module_checkpoint["embeds.weight"].shape[1]
             num_cameras = len(trainset)
 
             self.app_module = AppearanceOptModule(

@@ -114,15 +114,14 @@ class GsplatCommandSettings:
     # pose_noise: float = 0.0
 
     # This is disabled for now
-    # TODO: Enable
     # Enable appearance optimization. (experimental)
-    # app_opt: bool = False
-    # # Appearance embedding dimension
-    # app_embed_dim: int = 16
-    # # Learning rate for appearance optimization
-    # app_opt_lr: float = 1e-3
-    # # Regularization for appearance optimization as weight decay
-    # app_opt_reg: float = 1e-6
+    app_opt: bool = False
+    # Appearance embedding dimension
+    app_embed_dim: int = 16
+    # Learning rate for appearance optimization
+    app_opt_lr: float = 1e-3
+    # Regularization for appearance optimization as weight decay
+    app_opt_reg: float = 1e-6
 
     # TODO: Enable
     # # Enable bilateral grid. (experimental)
@@ -181,6 +180,10 @@ class GsplatCommandSettings:
             "pose_opt": self.pose_opt,
             "pose_opt_lr": self.pose_opt_lr,
             "pose_opt_reg": self.pose_opt_reg,
+            "app_opt": self.app_opt,
+            "app_embed_dim": self.app_embed_dim,
+            "app_opt_lr": self.app_opt_lr,
+            "app_opt_reg": self.app_opt_reg,
             "use_fused_bilagrid": self.use_fused_bilagrid,
         }
 
@@ -250,6 +253,15 @@ class GsplatCommandSettings:
 
         cmd.extend(["--pose-opt-lr", str(self.pose_opt_lr)])
         cmd.extend(["--pose-opt-reg", str(self.pose_opt_reg)])
+
+        if self.app_opt:
+            cmd.append("--app-opt")
+        else:
+            cmd.append("--no-app-opt")
+
+        cmd.extend(["--app-embed-dim", str(self.app_embed_dim)])
+        cmd.extend(["--app-opt-lr", str(self.app_opt_lr)])
+        cmd.extend(["--app-opt-reg", str(self.app_opt_reg)])
 
         if self.use_fused_bilagrid:
             cmd.append("--use-fused-bilagrid")

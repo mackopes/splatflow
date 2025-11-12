@@ -373,6 +373,45 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
                         compact=True,
                     )
 
+                # Appearance optimization
+                with Horizontal(classes="setting-row"):
+                    yield Checkbox(
+                        "Appearance optimization",
+                        value=False,
+                        id="app-opt",
+                        compact=True,
+                    )
+
+                with Horizontal(classes="setting-row"):
+                    yield Label("App embed dim:", classes="setting-label")
+                    yield Input(
+                        value="16",
+                        id="app-embed-dim",
+                        classes="setting-input",
+                        type="integer",
+                        compact=True,
+                    )
+
+                with Horizontal(classes="setting-row"):
+                    yield Label("App opt LR:", classes="setting-label")
+                    yield Input(
+                        value="0.001",
+                        id="app-opt-lr",
+                        classes="setting-input",
+                        type="number",
+                        compact=True,
+                    )
+
+                with Horizontal(classes="setting-row"):
+                    yield Label("App opt reg:", classes="setting-label")
+                    yield Input(
+                        value="1e-06",
+                        id="app-opt-reg",
+                        classes="setting-input",
+                        type="number",
+                        compact=True,
+                    )
+
                 # Fused bilagrid
                 with Horizontal(classes="setting-row"):
                     yield Checkbox(
@@ -446,6 +485,10 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
         pose_opt = self.query_one("#pose-opt", Checkbox).value
         pose_opt_lr = float(self.query_one("#pose-opt-lr", Input).value)
         pose_opt_reg = float(self.query_one("#pose-opt-reg", Input).value)
+        app_opt = self.query_one("#app-opt", Checkbox).value
+        app_embed_dim = int(self.query_one("#app-embed-dim", Input).value)
+        app_opt_lr = float(self.query_one("#app-opt-lr", Input).value)
+        app_opt_reg = float(self.query_one("#app-opt-reg", Input).value)
         use_fused_bilagrid = self.query_one("#use-fused-bilagrid", Checkbox).value
 
         return GsplatCommandSettings(
@@ -482,6 +525,10 @@ class TrainDialog(ModalScreen[GsplatCommandSettings | None]):
             pose_opt=pose_opt,
             pose_opt_lr=pose_opt_lr,
             pose_opt_reg=pose_opt_reg,
+            app_opt=app_opt,
+            app_embed_dim=app_embed_dim,
+            app_opt_lr=app_opt_lr,
+            app_opt_reg=app_opt_reg,
             use_fused_bilagrid=use_fused_bilagrid,
         )
 

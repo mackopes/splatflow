@@ -103,7 +103,7 @@ class Config:
     sh_degree: int = 3
     # Turn on another SH degree every this steps
     sh_degree_interval: int = 1000
-    # Initial opacity of GS
+
     init_opa: float = 0.1
     # Initial scale of GS
     init_scale: float = 1.0
@@ -693,6 +693,10 @@ class Runner:
             if cfg.random_bkgd:
                 bkgd = torch.rand(1, 3, device=device)
                 colors = colors + bkgd * (1.0 - alphas)
+            else:
+                # TODO: add any background, not just white
+                white = torch.ones((1, 3), device=device)
+                colors = colors + white * (1.0 - alphas)
 
             # Gsplat is incorrectly typed here. But this is ok!
             optimizers = cast(Dict[str, torch.optim.Optimizer], self.optimizers)
